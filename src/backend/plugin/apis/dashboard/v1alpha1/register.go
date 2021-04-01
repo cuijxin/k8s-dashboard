@@ -1,15 +1,14 @@
 package v1alpha1
 
 import (
-	"github.com/cuijxin/k8s-dashboard/src/backend/plugin/apis/dashboard"
-
+	apis "github.com/cuijxin/k8s-dashboard/src/backend/plugin/apis/dashboard"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: dashboard.GroupName, Version: "v1alpha1"}
+var SchemeGroupVersion = schema.GroupVersion{Group: apis.GroupName, Version: "v1alpha1"}
 
 // Kind takes an unqualified kind and returns back a Group qualified GroupKind
 func Kind(kind string) schema.GroupKind {

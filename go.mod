@@ -3,11 +3,13 @@ module github.com/cuijxin/k8s-dashboard
 go 1.15
 
 require (
+	github.com/docker/distribution v2.7.1+incompatible
 	github.com/emicklei/go-restful v2.15.0+incompatible
 	github.com/emicklei/go-restful/v3 v3.4.0
 	github.com/go-openapi/spec v0.20.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
+	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
 	golang.org/x/mod v0.4.2 // indirect
