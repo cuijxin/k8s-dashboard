@@ -1,5 +1,9 @@
 package dataselect
 
+import (
+	metricapi "github.com/cuijxin/k8s-dashboard/src/backend/integration/metric/api"
+)
+
 // GenericDataCell describes the interface of the data cell that contains all the necessary methods needed to perform
 // complex data selection
 // GenericDataSelect takes a list of these interfaces and performs selection operation.
@@ -17,7 +21,6 @@ type MetricDataCell interface {
 	// HeapsterSelector which in turn can be used to download metrics.
 	GetResourceSelector() *metricapi.ResourceSelector
 }
-
 
 // ComparableValue hold any value that can be compared to its own kind.
 type ComparableValue interface {

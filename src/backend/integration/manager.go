@@ -55,7 +55,7 @@ func (m *integrationManager) getState(integration api.Integration) *api.Integrat
 }
 
 // NewIntegrationManager creates integration manager.
-func NewIntegrationManager(manager clientapi.ClientManger) IntegrationManager {
+func NewIntegrationManager(manager clientapi.ClientManager) IntegrationManager {
 	return &integrationManager{
 		metric: metric.NewMetricManager(manager),
 	}

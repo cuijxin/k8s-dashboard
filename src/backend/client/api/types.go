@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 
 	authApi "github.com/cuijxin/k8s-dashboard/src/backend/auth/api"
+	pluginclientset "github.com/cuijxin/k8s-dashboard/src/backend/plugin/client/clientset/versioned"
 )
 
 const (
@@ -31,9 +32,9 @@ type ClientManager interface {
 	Client(req *restful.Request) (kubernetes.Interface, error)
 	InsecureClient() kubernetes.Interface
 	APIExtensionsClient(req *restful.Request) (apiextensionsclientset.Interface, error)
-	// PluginClient(req *restful.Request) (pluginclientset.Interface, error)
+	PluginClient(req *restful.Request) (pluginclientset.Interface, error)
 	InsecureAPIExtensionsClient() apiextensionsclientset.Interface
-	// InsecurePluginClient() pluginclientset.Interface
+	InsecurePluginClient() pluginclientset.Interface
 	CanI(req *restful.Request, ssar *v1.SelfSubjectAccessReview) bool
 	Config(req *restful.Request) (*rest.Config, error)
 	ClientCmdConfig(req *restful.Request) (clientcmd.ClientConfig, error)
