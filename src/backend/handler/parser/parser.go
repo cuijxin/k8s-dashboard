@@ -2,6 +2,7 @@ package parser
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/emicklei/go-restful/v3"
 
@@ -21,4 +22,8 @@ func parsePaginationPathParameter(request *restful.Request) *dataselect.Paginati
 
 	// Frontend pages start from 1 and backend starts from 0
 	return dataselect.NewPaginationQuery(int(itemsPerPage), int(page-1))
+}
+
+func parseFilterPathParameter(request *restful.Request) *dataselect.FilterQuery {
+	return dataselect.NewFilterQuery(strings.Split(request.QueryParameter("filterBy"), ","))
 }

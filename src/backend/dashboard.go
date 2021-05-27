@@ -1,9 +1,14 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net"
 	"os"
+
+	"github.com/cuijxin/k8s-dashboard/src/backend/args"
+	authApi "github.com/cuijxin/k8s-dashboard/src/backend/auth/api"
+	"github.com/cuijxin/k8s-dashboard/src/backend/client"
 
 	"github.com/spf13/pflag"
 )
@@ -48,6 +53,56 @@ var (
 func main() {
 	log.SetOutput(os.Stdout)
 
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.Parse()
+	_ = flag.CommandLine.Parse(make([]string, 0))
+
+	initArgHolder()
+
+	if args.Holder.GetApiServerHost() != "" {
+		log.Printf("Using apiserver-host location: %s", args.Holder.GetApiServerHost())
+	}
+	if args.Holder.GetKubeConfigFile() != "" {
+		log.Printf("Using kubeconfig file: %s", args.Holder.GetKubeConfigFile())
+	}
+	if args.Holder.GetNamespace() != "" {
+		log.Printf("Using namespace: %s", args.Holder.GetNamespace())
+	}
+
+	clientManager := client.NewClientManager(args.Holder.GetKubeConfigFile(), args.Holder.GetApiServerHost())
+	versionInfo, err := clientManager.InsecureClient().Discovery().ServerVersion()
+	if err != nil {
+		handleFatalInitError(err)
+	}
+
+	log.Printf("Successful initial request to the apiserver, version: %s", versionInfo.String())
+}
+
+func initArgHolder() {
+	builder := args.GetHolderBuilder()
+	builder.SetInsecurePort(*argInsecurePort)
+	builder.SetPort(*argPort)
+	builder.SetTokenTTL(*argTokenTTL)
+	builder.SetMetricClientCheckPeriod(*argMetricClientCheckPeriod)
+	builder.SetInsecureBindAddress(*argInsecureBindAddress)
+	builder.SetBindAddress(*argBindAddress)
+	builder.SetDefaultCertDir(*argDefaultCertDir)
+	builder.SetCertFile(*argCertFile)
+	builder.SetKeyFile(*argKeyFile)
+	builder.SetApiServerHost(*argApiserverHost)
+	builder.SetMetricsProvider(*argMetricsProvider)
+	builder.SetHeapsterHost(*argHeapsterHost)
+	builder.SetSidecarHost(*argSidecarHost)
+	builder.SetKubeConfigFile(*argKubeConfigFile)
+	builder.SetSystemBanner(*argSystemBanner)
+	builder.SetSystemBannerSeverity(*argSystemBannerSeverity)
+	builder.SetAPILogLevel(*argAPILogLevel)
+	builder.SetAuthenticationMode(*argAuthenticationMode)
+	builder.SetAutoGenerateCertificates(*argAutoGenerateCertificates)
+	builder.SetDisableSettingsAuthorizer(*argDisableSettingsAuthorizer)
+	builder.SetEnableSkipLogin(*argEnableSkip)
+	builder.SetNamespace(*argNamespace)
+	builder.SetLocaleConfig(*localeConfig)
 }
 
 func handleFatalInitError(err error) {

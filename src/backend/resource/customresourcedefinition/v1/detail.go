@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -29,4 +30,43 @@ func GetCustomResourceDefinitionDetail(client apiextensionsclientset.Interface, 
 	}
 
 	return toCustomResourceDefinitionDetail(customResourceDefinition, *objects, nonCriticalErrors), nil
+}
+
+func toCustomResourceDefinitionDetail(
+	crd *apiextensions.CustomResourceDefinition,
+	objects types.CustomResourceObjectList,
+	nonCriticalErrors []error) *types.CustomResourceDefinitionDetail {
+
+	subresources := []string{}
+	crdSubresources := crd.Spec.Versions[0].Subresources
+	if crdSubresources != nil {
+		subresources = append(subresources, "Scale")
+	}
+	if crdSubresources.Status != nil {
+		subresources = append(subresources, "Status")
+	}
+
+	return &types.CustomResourceDefinitionDetail{
+		CustomResourceDefinition: toCustomResoruceDefinition(crd),
+		Versions:                 getCRDVersions(crd),
+		Conditions:               getCRDConditions(crd),
+		Objects:                  objects,
+		Subresources:             subresources,
+		Errors:                   nonCriticalErrors,
+	}
+}
+
+func getCRDVersions(crd *apiextensions.CustomResourceDefinition) []types.CustomResourceDefinitionVersion {
+	crdVersions := make([]types.CustomResourceDefinitionVersion, 0, len(crd.Spec.Versions))
+	if len(crd.Spec.Versions) > 0 {
+		for _, version := range crd.Spec.Versions {
+			crdVersions = append(crdVersions, types.CustomResourceDefinitionVersion{
+				Name:    version.Name,
+				Served:  version.Served,
+				Storage: version.Storage,
+			})
+		}
+	}
+
+	return crdVersions
 }

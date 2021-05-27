@@ -61,7 +61,7 @@ func (c CustomResourceObjectCell) GetProperty(name dataselect.PropertyName) data
 	}
 }
 
-func toObjectCell(std []types.CustomResourceObject) []dataselect.DataCell {
+func toObjectCells(std []types.CustomResourceObject) []dataselect.DataCell {
 	cells := make([]dataselect.DataCell, len(std))
 	for i := range std {
 		cells[i] = CustomResourceObjectCell(std[i])

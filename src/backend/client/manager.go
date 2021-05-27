@@ -1,6 +1,10 @@
 package client
 
 import (
+	"context"
+	"log"
+	"strings"
+
 	"github.com/emicklei/go-restful/v3"
 	v1 "k8s.io/api/authorization/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -10,12 +14,13 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 
-	"github.com/cuijxin/k8s-dashboard/src/backend/resource/customresourcedefinition"
 	"github.com/cuijxin/k8s-dashboard/src/backend/args"
 	authApi "github.com/cuijxin/k8s-dashboard/src/backend/auth/api"
 	clientapi "github.com/cuijxin/k8s-dashboard/src/backend/client/api"
 	"github.com/cuijxin/k8s-dashboard/src/backend/client/csrf"
 	"github.com/cuijxin/k8s-dashboard/src/backend/errors"
+	pluginclientset "github.com/cuijxin/k8s-dashboard/src/backend/plugin/client/clientset/versioned"
+	"github.com/cuijxin/k8s-dashboard/src/backend/resource/customresourcedefinition"
 )
 
 // Dashboard UI default values for client configs.
@@ -60,7 +65,7 @@ type clientManager struct {
 	insecureAPIExtensionsClient apiextensionsclientset.Interface
 	// Plugin client created without providing auth info. It uses permissions granted to
 	// service account used by dashboard or kubeconfig file if it was passed during dashboard init.
-	// insecurePluginClient pluginclientset.Interface
+	insecurePluginClient pluginclientset.Interface
 	// Kubernetes client created without providing auth info. It uses permissions granted to
 	// service account used by dashboard or kubeconfig file if it was passed during dashboard init.
 	insecureClient kubernetes.Interface
@@ -503,7 +508,7 @@ func (self *clientManager) initInsecureClients() {
 
 	self.insecureClient = k8sClient
 	self.insecureAPIExtensionsClient = apiextensionsclient
-	// self.insecurePluginClient = pluginclient
+	self.insecurePluginClient = pluginclient
 }
 
 func (self *clientManager) initInsecureConfig() {
