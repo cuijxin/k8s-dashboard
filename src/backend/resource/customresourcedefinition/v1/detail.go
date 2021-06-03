@@ -47,7 +47,7 @@ func toCustomResourceDefinitionDetail(
 	}
 
 	return &types.CustomResourceDefinitionDetail{
-		CustomResourceDefinition: toCustomResoruceDefinition(crd),
+		CustomResourceDefinition: toCustomResourceDefinition(crd),
 		Versions:                 getCRDVersions(crd),
 		Conditions:               getCRDConditions(crd),
 		Objects:                  objects,

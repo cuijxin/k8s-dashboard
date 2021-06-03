@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+
 	"github.com/cuijxin/k8s-dashboard/src/backend/api"
 
 	"github.com/cuijxin/k8s-dashboard/src/backend/resource/common"
@@ -24,7 +25,7 @@ type CustomResourceDefinitionList struct {
 
 // CustomResourceDefinition represents a custom resource definition.
 type CustomResourceDefinition struct {
-	Objectmeta  api.ObjectMeta                `json:"objectMeta"`
+	ObjectMeta  api.ObjectMeta                `json:"objectMeta"`
 	TypeMeta    api.TypeMeta                  `json:"typeMeta"`
 	Version     string                        `json:"version,omitempty"`
 	Group       string                        `json:"group"`
