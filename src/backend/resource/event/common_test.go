@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/cuijxin/k8s-dashboard/src/backend/api"
-	"github.com/cuijxin/k8s-dashboard/src/backend/plugin/client/clientset/versioned/fake"
 	"github.com/cuijxin/k8s-dashboard/src/backend/resource/common"
 	"github.com/cuijxin/k8s-dashboard/src/backend/resource/dataselect"
 	apps "k8s.io/api/apps/v1"

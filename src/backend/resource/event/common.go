@@ -170,7 +170,9 @@ func ToEvent(event v1.Event) common.Event {
 }
 
 // GetResourceEvents gets events associated to specified resource.
-func GetResourceEvents(client kubernetes.Interface, dsQuery *dataselect.DataSelectQuery, namespace, name string) (*common.EventList, error) {
+func GetResourceEvents(client kubernetes.Interface,
+	dsQuery *dataselect.DataSelectQuery,
+	namespace, name string) (*common.EventList, error) {
 	resourceEvents, err := GetEvents(client, namespace, name)
 	nonCriticalErrors, criticalError := errors.HandleError(err)
 	if criticalError != nil {
