@@ -1,11 +1,19 @@
 package client
 
 import (
+	"context"
+	"fmt"
+
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	restclient "k8s.io/client-go/rest"
 
 	"github.com/cuijxin/k8s-dashboard/src/backend/api"
-	"github.com/cuijxin/k8s-dashboard/src/backend/errors"
 	clientapi "github.com/cuijxin/k8s-dashboard/src/backend/client/api"
+	"github.com/cuijxin/k8s-dashboard/src/backend/errors"
+	"github.com/cuijxin/k8s-dashboard/src/backend/resource/customresourcedefinition"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 )
 
 // resourceVerber is a struct responsible for doing common verb operations on resources, like

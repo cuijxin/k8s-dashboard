@@ -5,10 +5,19 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"github.com/cuijxin/k8s-dashboard/src/backend/args"
+	"github.com/cuijxin/k8s-dashboard/src/backend/auth"
 	authApi "github.com/cuijxin/k8s-dashboard/src/backend/auth/api"
+	jwe "github.com/cuijxin/k8s-dashboard/src/backend/auth/jwe"
 	"github.com/cuijxin/k8s-dashboard/src/backend/client"
+	clientapi "github.com/cuijxin/k8s-dashboard/src/backend/client/api"
+	"github.com/cuijxin/k8s-dashboard/src/backend/integration"
+	integrationapi "github.com/cuijxin/k8s-dashboard/src/backend/integration/api"
+	"github.com/cuijxin/k8s-dashboard/src/backend/settings"
+	"github.com/cuijxin/k8s-dashboard/src/backend/sync"
+	"github.com/cuijxin/k8s-dashboard/src/backend/systembanneer"
 
 	"github.com/spf13/pflag"
 )
@@ -76,6 +85,63 @@ func main() {
 	}
 
 	log.Printf("Successful initial request to the apiserver, version: %s", versionInfo.String())
+
+	// Init auth manager
+	authManager := initAuthManager(clientManager)
+
+	// Init settings manager
+	settingsManager := settings.NewSettingsManager()
+
+	// Init system banner manager
+	systemBannerManager := systembanneer.NewSystemBannerManager(args.Holder.GetSystemBanner(), args.Holder.GetSystemBannerSeverity())
+
+	// Init integrations
+	integrationManager := integration.NewIntegrationManager(clientManager)
+
+	switch metricsProvider := args.Holder.GetMetricsProvider(); metricsProvider {
+	case "sidecar":
+		integrationManager.Metric().ConfigureSidecar(args.Holder.GetSidecarHost()).EnableWithRetry(integrationapi.SidecarIntegrationID, time.Duration(args.Holder.GetMetricClientCheckPeriod()))
+	case "heapster":
+		integrationManager.Metric().ConfigureHeapster(args.Holder.GetHeapsterHost()).EnableWithRetry(integrationapi.HeapsterIntegrationID, time.Duration(args.Holder.GetMetricClientCheckPeriod()))
+	case "none":
+		log.Print("no metrics provider selected, will not check metrics.")
+	default:
+		log.Printf("Invalid metrics provider selected: %s", metricsProvider)
+		log.Print("Defaulting to use the Sidecar provider.")
+		integrationManager.Metric().ConfigureSidecar(args.Holder.GetSidecarHost()).EnableWithRetry(integrationapi.SidecarIntegrationID, time.Duration(args.Holder.GetMetricClientCheckPeriod()))
+	}
+
+}
+
+func initAuthManager(clientManager clientapi.ClientManager) authApi.AuthManager {
+	insecureClient := clientManager.InsecureClient()
+
+	// Init default encryption key synchronizer
+	synchronizerManager := sync.NewSynchronizerManager(insecureClient)
+	keySynchronizer := synchronizerManager.Secret(args.Holder.GetNamespace(), authApi.EncryptionKeyHolderName)
+
+	// Register synchronizer. Overwatch will be responsible for restarting it in case of error.
+	sync.Overwatch.RegisterSynchronizer(keySynchronizer, sync.AlwaysRestart)
+
+	// Init encryption key holder and token manager
+	keyHolder := jwe.NewRSAKeyHolder(keySynchronizer)
+	tokenManager := jwe.NewJWETokenManager(keyHolder)
+	tokenTTL := time.Duration(args.Holder.GetTokenTTL())
+	if tokenTTL != authApi.DefaultTokenTTL {
+		tokenManager.SetTokenTTL(tokenTTL)
+	}
+
+	// Set token manager for client manager.
+	clientManager.SetTokenManager(tokenManager)
+	authModes := authApi.ToAuthenticationModes(args.Holder.GetAuthenticationMode())
+	if len(authModes) == 0 {
+		authModes.Add(authApi.Token)
+	}
+
+	// UI logic dictates this should be the inverse of the cli option
+	authenticationSkippable := args.Holder.GetEnableSkipLogin()
+
+	return auth.NewAuthManager(clientManager, tokenManager, authModes, authenticationSkippable)
 }
 
 func initArgHolder() {

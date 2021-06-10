@@ -11,8 +11,9 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/yanniszark/go-nodetool v0.0.0-20191206125106-cd8f91fa16be
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
-	golang.org/x/net v0.0.0-20210330230544-e57232859fb2 // indirect
+	golang.org/x/net v0.0.0-20210330230544-e57232859fb2
 	golang.org/x/text v0.3.5 // indirect
+	gopkg.in/igm/sockjs-go.v2 v2.1.0 // indirect
 	gopkg.in/square/go-jose.v1 v1.1.2
 	gopkg.in/square/go-jose.v2 v2.5.1
 	k8s.io/api v0.21.1
