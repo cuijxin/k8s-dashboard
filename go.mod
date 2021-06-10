@@ -4,12 +4,13 @@ go 1.15
 
 require (
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/emicklei/go-restful v2.15.0+incompatible
+	github.com/emicklei/go-restful v2.9.5+incompatible
 	github.com/emicklei/go-restful/v3 v3.4.0
-	github.com/kubernetes/dashboard v1.10.1
+	github.com/kubernetes/dashboard v1.10.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/prometheus/client_golang v1.7.1
 	github.com/spf13/pflag v1.0.5
-	github.com/yanniszark/go-nodetool v0.0.0-20191206125106-cd8f91fa16be
+	github.com/yanniszark/go-nodetool v0.0.0-20191206125106-cd8f91fa16be // indirect
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2 // indirect
 	golang.org/x/net v0.0.0-20210330230544-e57232859fb2
 	golang.org/x/text v0.3.5 // indirect

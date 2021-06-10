@@ -13,9 +13,9 @@ import (
 
 	"github.com/cuijxin/k8s-dashboard/src/backend/args"
 	authApi "github.com/cuijxin/k8s-dashboard/src/backend/auth/api"
-
+	clientapi "github.com/cuijxin/k8s-dashboard/src/backend/client/api"
 	"github.com/cuijxin/k8s-dashboard/src/backend/errors"
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"golang.org/x/net/xsrftoken"
 )
 
@@ -26,7 +26,7 @@ const (
 )
 
 // InstallFilters installs defined filter for given web service.
-func InstallFilters(ws *restful.WebService, manager clientapi.clientManager) {
+func InstallFilters(ws *restful.WebService, manager clientapi.ClientManager) {
 	ws.Filter(requestAndResponseLogger)
 	ws.Filter(metricsFilter)
 	ws.Filter(validateXSRFFilter(manager.CSRFKey()))
@@ -119,13 +119,13 @@ func metricsFilter(req *restful.Request, resp *restful.Response, chain *restful.
 	chain.ProcessFilter(req, resp)
 
 	if resource != nil {
-		// monitor(
-		// 	req.Request.Method,
-		// 	*resource, httpClient,
-		// 	resp.Header().Get("Content-Type"),
-		// 	resp.StatusCode(),
-		// 	time.Now(),
-		// )
+		monitor(
+			req.Request.Method,
+			*resource, httpClient,
+			resp.Header().Get("Content-Type"),
+			resp.StatusCode(),
+			time.Now(),
+		)
 	}
 }
 
