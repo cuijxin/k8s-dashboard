@@ -1,11 +1,15 @@
 package plugin
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cuijxin/k8s-dashboard/src/backend/api"
+	"github.com/cuijxin/k8s-dashboard/src/backend/errors"
 	"github.com/cuijxin/k8s-dashboard/src/backend/plugin/apis/dashboard/v1alpha1"
+	pluginclientset "github.com/cuijxin/k8s-dashboard/src/backend/plugin/client/clientset/versioned"
 	"github.com/cuijxin/k8s-dashboard/src/backend/resource/dataselect"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // PluginList holds only necessay information and is used to map v1alpha1.PluginList
@@ -40,6 +44,18 @@ func (p PluginCell) GetProperty(name dataselect.PropertyName) dataselect.Compara
 		// if name is not supported then just return a constant dummy value, sort will have no effect.
 		return nil
 	}
+}
+
+// GetPluginList returns all the registered plugins
+func GetPluginList(client pluginclientset.Interface, ns string, dsQuery *dataselect.DataSelectQuery) (*PluginList, error) {
+	plugins, err := client.DashboardV1alpha1().Plugins(ns).List(context.TODO(), v1.ListOptions{})
+	nonCriticalErrors, criticalError := errors.HandleError(err)
+	if criticalError != nil {
+		return &PluginList{Items: []Plugin{}, Errors: []error{criticalError}}, nil
+	}
+
+	result := toPluginList(plugins.Items, nonCriticalErrors, dsQuery)
+	return result, nil
 }
 
 func toPluginList(plugins []v1alpha1.Plugin, nonCriticalErrors []error, dsQuery *dataselect.DataSelectQuery) *PluginList {

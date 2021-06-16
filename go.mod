@@ -3,10 +3,12 @@ module github.com/cuijxin/k8s-dashboard
 go 1.15
 
 require (
+	github.com/docker/cli v20.10.7+incompatible
+	github.com/docker/compose-on-kubernetes v0.4.24 // indirect
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/emicklei/go-restful v2.9.5+incompatible
-	github.com/emicklei/go-restful/v3 v3.4.0
-	github.com/kubernetes/dashboard v1.10.1 // indirect
+	github.com/emicklei/go-restful/v3 v3.5.1
+	github.com/kubernetes/dashboard v1.10.1
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.7.1
 	github.com/spf13/pflag v1.0.5
@@ -17,6 +19,7 @@ require (
 	gopkg.in/igm/sockjs-go.v2 v2.1.0 // indirect
 	gopkg.in/square/go-jose.v1 v1.1.2
 	gopkg.in/square/go-jose.v2 v2.5.1
+	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
 	k8s.io/api v0.21.1
 	k8s.io/apiextensions-apiserver v0.20.5
 	k8s.io/apimachinery v0.21.1

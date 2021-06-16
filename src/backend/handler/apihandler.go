@@ -3,9 +3,11 @@ package handler
 import (
 	"net/http"
 
+	"github.com/cuijxin/k8s-dashboard/src/backend/auth"
 	authApi "github.com/cuijxin/k8s-dashboard/src/backend/auth/api"
 	clientapi "github.com/cuijxin/k8s-dashboard/src/backend/client/api"
 	"github.com/cuijxin/k8s-dashboard/src/backend/integration"
+	"github.com/cuijxin/k8s-dashboard/src/backend/plugin"
 	settingsApi "github.com/cuijxin/k8s-dashboard/src/backend/settings/api"
 	"github.com/cuijxin/k8s-dashboard/src/backend/systembanner"
 	"github.com/emicklei/go-restful/v3"
@@ -48,4 +50,18 @@ func CreateHTTPAPIHandler(iManager integration.IntegrationManager,
 	apiV1Ws := new(restful.WebService)
 
 	InstallFilters(apiV1Ws, cManager)
+
+	apiV1Ws.Path("/api/v1").
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON)
+	wsContainer.Add(apiV1Ws)
+
+	integrationHandler := integration.NewIntegrationHandler(iManager)
+	integrationHandler.Install(apiV1Ws)
+
+	plguinHandler := plugin.NewPluginHandler(cManager)
+	plguinHandler.Install(apiV1Ws)
+
+	authHandler := auth.NewAuthHandler(authManager)
+	authHandler.Install(apiV1Ws)
 }

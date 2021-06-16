@@ -1,7 +1,6 @@
 package plugin
 
 import (
-	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -9,27 +8,20 @@ import (
 
 	"github.com/cuijxin/k8s-dashboard/src/backend/plugin/apis/dashboard/v1alpha1"
 	fakePluginClientset "github.com/cuijxin/k8s-dashboard/src/backend/plugin/client/clientset/versioned/fake"
+	"github.com/cuijxin/k8s-dashboard/src/backend/resource/dataselect"
 	"github.com/emicklei/go-restful/v3"
 	coreV1 "k8s.io/api/core/v1"
+	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	fakeK8sClient "k8s.io/client-go/kubernetes/fake"
 )
 
-var srcData = "randomPluginSourceCode"
-
-func TestGetPluginSource(t *testing.T) {
+func TestGetPluginList(t *testing.T) {
 	ns := "default"
 	pluginName := "test-plugin"
 	filename := "plugin-test.js"
 	cfgMapName := "plugin-test-cfgMap"
 
 	pcs := fakePluginClientset.NewSimpleClientset()
-	cs := fakeK8sClient.NewSimpleClientset()
-
-	_, err := GetPluginSource(pcs, cs, ns, pluginName)
-	if err == nil {
-		t.Errorf("error 'plugins.dashboard.k8s.io \"%s\" not found' did not occur", pluginName)
-	}
 
 	_, _ = pcs.DashboardV1alpha1().Plugins(ns).Create(context.TODO(), &v1alpha1.Plugin{
 		ObjectMeta: v1.ObjectMeta{Name: pluginName, Namespace: ns},
@@ -39,30 +31,28 @@ func TestGetPluginSource(t *testing.T) {
 					LocalObjectReference: coreV1.LocalObjectReference{Name: cfgMapName},
 				},
 				Filename: filename}},
-	}, v1.CreateOptions{})
+	}, metaV1.CreateOptions{})
 
-	_, err = GetPluginSource(pcs, cs, ns, pluginName)
-	if err == nil {
-		t.Errorf("error 'configmaps \"%s\" not found' did not occur", cfgMapName)
+	dsQuery := dataselect.DataSelectQuery{
+		PaginationQuery: &dataselect.PaginationQuery{
+			ItemsPerPage: 10,
+			Page:         1,
+		},
+		SortQuery:   dataselect.NoSort,
+		FilterQuery: dataselect.NoFilter,
+		MetricQuery: dataselect.NoMetrics,
 	}
-
-	_, _ = cs.CoreV1().ConfigMaps(ns).Create(context.TODO(), &coreV1.ConfigMap{
-		ObjectMeta: v1.ObjectMeta{
-			Name: cfgMapName, Namespace: ns},
-		Data: map[string]string{filename: srcData},
-	}, v1.CreateOptions{})
-
-	data, err := GetPluginSource(pcs, cs, ns, pluginName)
+	data, err := GetPluginList(pcs, ns, &dsQuery)
 	if err != nil {
-		t.Errorf("error while fetching plugin source: %s", err)
+		t.Errorf("error while fetching plugins: %s", err)
 	}
 
-	if !bytes.Equal(data, []byte(srcData)) {
-		t.Error("bytes in configMap and bytes from GetPluginSource are different")
+	if data.ListMeta.TotalItems != 1 {
+		t.Errorf("there should be one plugin registered, got %d", data.ListMeta.TotalItems)
 	}
 }
 
-func Test_servePluginSource(t *testing.T) {
+func Test_handlePluginList(t *testing.T) {
 	ns := "default"
 	pluginName := "test-plugin"
 	filename := "plugin-test.js"
@@ -78,13 +68,13 @@ func Test_servePluginSource(t *testing.T) {
 					LocalObjectReference: coreV1.LocalObjectReference{Name: cfgMapName},
 				},
 				Filename: filename}},
-	}, v1.CreateOptions{})
+	}, metaV1.CreateOptions{})
 
-	httpReq, _ := http.NewRequest(http.MethodGet, "/api/v1/plugin/default/test-plugin", nil)
+	httpReq, _ := http.NewRequest(http.MethodGet, "/api/v1/plugin/default?itemsPerPage=10&page=1&sortBy=d,creationTimestamp", nil)
 	req := restful.NewRequest(httpReq)
 
 	httpWriter := httptest.NewRecorder()
 	resp := restful.NewResponse(httpWriter)
 
-	h.servePluginSource(req, resp)
+	h.handlePluginList(req, resp)
 }
