@@ -24,7 +24,7 @@ import (
 	integrationapi "github.com/cuijxin/k8s-dashboard/src/backend/integration/api"
 	"github.com/cuijxin/k8s-dashboard/src/backend/settings"
 	"github.com/cuijxin/k8s-dashboard/src/backend/sync"
-	"github.com/cuijxin/k8s-dashboard/src/backend/systembanneer"
+	"github.com/cuijxin/k8s-dashboard/src/backend/systembanner"
 
 	"github.com/spf13/pflag"
 )
@@ -100,7 +100,7 @@ func main() {
 	settingsManager := settings.NewSettingsManager()
 
 	// Init system banner manager
-	systemBannerManager := systembanneer.NewSystemBannerManager(args.Holder.GetSystemBanner(), args.Holder.GetSystemBannerSeverity())
+	systemBannerManager := systembanner.NewSystemBannerManager(args.Holder.GetSystemBanner(), args.Holder.GetSystemBannerSeverity())
 
 	// Init integrations
 	integrationManager := integration.NewIntegrationManager(clientManager)
