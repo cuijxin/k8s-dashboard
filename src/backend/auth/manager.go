@@ -17,7 +17,28 @@ type authManager struct {
 
 // Login implements auth manager. See AuthManager interface for more information.
 func (self authManager) Login(spec *authApi.LoginSpec) (*authApi.AuthResponse, error) {
+	authenticator, err := self.getAuthenticator(spec)
+	if err != nil {
+		return nil, err
+	}
 
+	authInfo, err := authenticator.GetAuthInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	err = self.healthCheck(authInfo)
+	nonCriticalErrors, criticalError := errors.HandleError(err)
+	if criticalError != nil || len(nonCriticalErrors) > 0 {
+		return &authApi.AuthResponse{Errors: nonCriticalErrors}, criticalError
+	}
+
+	token, err := self.tokenManager.Generate(authInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return &authApi.AuthResponse{JWEToken: token, Errors: nonCriticalErrors}, nil
 }
 
 // Refresh implements auth manager. See AuthManager interface for more information.
@@ -27,6 +48,10 @@ func (self authManager) Refresh(jweToken string) (string, error) {
 
 func (self authManager) AuthenticationModes() []authApi.AuthenticationMode {
 	return self.authenticationModes.Array()
+}
+
+func (self authManager) AuthenticationSkippable() bool {
+	return self.authenticationSkippable
 }
 
 // Returns authenticator based on provided LoginSpec.

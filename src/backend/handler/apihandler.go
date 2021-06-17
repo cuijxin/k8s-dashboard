@@ -6,8 +6,12 @@ import (
 	"github.com/cuijxin/k8s-dashboard/src/backend/auth"
 	authApi "github.com/cuijxin/k8s-dashboard/src/backend/auth/api"
 	clientapi "github.com/cuijxin/k8s-dashboard/src/backend/client/api"
+	"github.com/cuijxin/k8s-dashboard/src/backend/errors"
+	"github.com/cuijxin/k8s-dashboard/src/backend/handler/parser"
 	"github.com/cuijxin/k8s-dashboard/src/backend/integration"
 	"github.com/cuijxin/k8s-dashboard/src/backend/plugin"
+	"github.com/cuijxin/k8s-dashboard/src/backend/resource/clusterrole"
+	"github.com/cuijxin/k8s-dashboard/src/backend/settings"
 	settingsApi "github.com/cuijxin/k8s-dashboard/src/backend/settings/api"
 	"github.com/cuijxin/k8s-dashboard/src/backend/systembanner"
 	"github.com/emicklei/go-restful/v3"
@@ -64,4 +68,33 @@ func CreateHTTPAPIHandler(iManager integration.IntegrationManager,
 
 	authHandler := auth.NewAuthHandler(authManager)
 	authHandler.Install(apiV1Ws)
+
+	settingsHandler := settings.NewSettingsHandler(sManager, cManager)
+	settingsHandler.Install(apiV1Ws)
+
+	systemBannerHandler := systembanner.NewSystemBannerHandler(sbManager)
+	systemBannerHandler.Install(apiV1Ws)
+
+	apiV1Ws.Route(
+		apiV1Ws.GET("/clusterrole").
+			To(apiHandler.handleGetClusterRoleList).
+			Writes(clusterrole.ClusterRoleList{}))
+
+	return wsContainer, nil
+}
+
+func (apiHandler *APIHandler) handleGetClusterRoleList(request *restful.Request, response *restful.Response) {
+	k8sClient, err := apiHandler.cManager.Client(request)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+
+	dataSelect := parser.ParseDataSelectPathParameter(request)
+	result, err := clusterrole.GetClusterRoleList(k8sClient, dataSelect)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+	response.WriteHeaderAndEntity(http.StatusOK, result)
 }

@@ -139,6 +139,12 @@ type AuthResponse struct {
 	Errors []error `json:"errors"`
 }
 
+// TokenRefreshSpec contains token taht is required by token refresh operation.
+type TokenRefreshSpec struct {
+	// JWEToken is a token generated during login request that contains AuthInfo data in the payload.
+	JWEToken string `json:"jweToken"`
+}
+
 // LoginModesResponse contains list of auth modes supported by dashboard.
 type LoginModesResponse struct {
 	Modes []AuthenticationMode `json:"modes"`

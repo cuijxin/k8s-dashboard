@@ -1,9 +1,13 @@
 package main
 
 import (
+	"crypto/elliptic"
+	"crypto/tls"
 	"flag"
+	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"time"
 
@@ -11,8 +15,11 @@ import (
 	"github.com/cuijxin/k8s-dashboard/src/backend/auth"
 	authApi "github.com/cuijxin/k8s-dashboard/src/backend/auth/api"
 	jwe "github.com/cuijxin/k8s-dashboard/src/backend/auth/jwe"
+	"github.com/cuijxin/k8s-dashboard/src/backend/cert"
+	"github.com/cuijxin/k8s-dashboard/src/backend/cert/ecdsa"
 	"github.com/cuijxin/k8s-dashboard/src/backend/client"
 	clientapi "github.com/cuijxin/k8s-dashboard/src/backend/client/api"
+	"github.com/cuijxin/k8s-dashboard/src/backend/handler"
 	"github.com/cuijxin/k8s-dashboard/src/backend/integration"
 	integrationapi "github.com/cuijxin/k8s-dashboard/src/backend/integration/api"
 	"github.com/cuijxin/k8s-dashboard/src/backend/settings"
@@ -111,6 +118,58 @@ func main() {
 		integrationManager.Metric().ConfigureSidecar(args.Holder.GetSidecarHost()).EnableWithRetry(integrationapi.SidecarIntegrationID, time.Duration(args.Holder.GetMetricClientCheckPeriod()))
 	}
 
+	apiHandler, err := handler.CreateHTTPAPIHandler(
+		integrationManager,
+		clientManager,
+		authManager,
+		settingsManager,
+		systemBannerManager)
+	if err != nil {
+		handleFatalInitError(err)
+	}
+
+	var servingCerts []tls.Certificate
+	if args.Holder.GetAutoGenerateCertificates() {
+		log.Println("Auto-generating certificates")
+		certCreator := ecdsa.NewECDSACreator(args.Holder.GetKeyFile(), args.Holder.GetCertFile(), elliptic.P256())
+		certManager := cert.NewCertManager(certCreator, args.Holder.GetDefaultCertDir())
+		servingCert, err := certManager.GetCertificates()
+		if err != nil {
+			handleFatalInitServingCertError(err)
+		}
+		servingCerts = []tls.Certificate{servingCert}
+	} else if args.Holder.GetCertFile() != "" && args.Holder.GetKeyFile() != "" {
+		certFilePath := args.Holder.GetDefaultCertDir() + string(os.PathSeparator) + args.Holder.GetCertFile()
+		keyFilePath := args.Holder.GetDefaultCertDir() + string(os.PathSeparator) + args.Holder.GetKeyFile()
+		servingCert, err := tls.LoadX509KeyPair(certFilePath, keyFilePath)
+		if err != nil {
+			handleFatalInitServingCertError(err)
+		}
+		servingCerts = []tls.Certificate{servingCert}
+	}
+
+	// Run a HTTP server that serves static public files from './public' and handles API calls.
+	http.Handle("/api/", apiHandler)
+
+	// Listen for http or https
+	if servingCerts != nil {
+		log.Printf("Serving securely on HTTPS port: %d", args.Holder.GetPort())
+		secureAddr := fmt.Sprintf("%s:%d", args.Holder.GetBindAddress(), args.Holder.GetPort())
+		server := &http.Server{
+			Addr:    secureAddr,
+			Handler: http.DefaultServeMux,
+			TLSConfig: &tls.Config{
+				Certificates: servingCerts,
+				MinVersion:   tls.VersionTLS12,
+			},
+		}
+		go func() { log.Fatal(server.ListenAndServeTLS("", "")) }()
+	} else {
+		log.Printf("Serving insecurely on HTTP port: %d", args.Holder.GetInsecurePort())
+		addr := fmt.Sprintf("%s:%d", args.Holder.GetInsecureBindAddress(), args.Holder.GetInsecurePort())
+		go func() { log.Fatal(http.ListenAndServe(addr, nil)) }()
+	}
+	select {}
 }
 
 func initAuthManager(clientManager clientapi.ClientManager) authApi.AuthManager {
