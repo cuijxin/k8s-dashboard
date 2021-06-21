@@ -11,7 +11,12 @@
       "mode": "auto",
       "program": "${fileDirname}",
       "env": {},
-      "args": ["--kubeconfig", "/Users/cjx/.kube/config"]
+      "args": [
+        "--kubeconfig",
+        "/Users/cjx/.kube/config",
+        "--api-log-level",
+        "DEBUG"
+      ]
     }
   ]
 }

@@ -2,7 +2,9 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 
+	"github.com/cuijxin/k8s-dashboard/src/backend/api"
 	"github.com/cuijxin/k8s-dashboard/src/backend/auth"
 	authApi "github.com/cuijxin/k8s-dashboard/src/backend/auth/api"
 	clientapi "github.com/cuijxin/k8s-dashboard/src/backend/client/api"
@@ -11,10 +13,14 @@ import (
 	"github.com/cuijxin/k8s-dashboard/src/backend/integration"
 	"github.com/cuijxin/k8s-dashboard/src/backend/plugin"
 	"github.com/cuijxin/k8s-dashboard/src/backend/resource/clusterrole"
+	"github.com/cuijxin/k8s-dashboard/src/backend/resource/clusterrolebinding"
+	"github.com/cuijxin/k8s-dashboard/src/backend/resource/common"
+	"github.com/cuijxin/k8s-dashboard/src/backend/resource/role"
 	"github.com/cuijxin/k8s-dashboard/src/backend/settings"
 	settingsApi "github.com/cuijxin/k8s-dashboard/src/backend/settings/api"
 	"github.com/cuijxin/k8s-dashboard/src/backend/systembanner"
 	"github.com/emicklei/go-restful/v3"
+	"golang.org/x/net/xsrftoken"
 )
 
 const (
@@ -76,11 +82,40 @@ func CreateHTTPAPIHandler(iManager integration.IntegrationManager,
 	systemBannerHandler.Install(apiV1Ws)
 
 	apiV1Ws.Route(
+		apiV1Ws.GET("csrftoken/{action}").
+			To(apiHandler.handleGetCsrfToken).
+			Writes(api.CsrfToken{}))
+
+	apiV1Ws.Route(
 		apiV1Ws.GET("/clusterrole").
 			To(apiHandler.handleGetClusterRoleList).
 			Writes(clusterrole.ClusterRoleList{}))
+	apiV1Ws.Route(
+		apiV1Ws.GET("/clusterrole/{name}").
+			To(apiHandler.handleGetClusterRoleDetail).
+			Writes(clusterrole.ClusterRoleDetail{}))
+
+	apiV1Ws.Route(
+		apiV1Ws.GET("/clusterrolebinding").
+			To(apiHandler.handleGetClusterRoleBindingList).
+			Writes(clusterrolebinding.ClusterRoleBindingList{}))
+	apiV1Ws.Route(
+		apiV1Ws.GET("/clusterrolebinding/{name}").
+			To(apiHandler.handleGetClusterRoleBindingDetail).
+			Writes(clusterrolebinding.ClusterRoleBindingDetail{}))
+
+	apiV1Ws.Route(
+		apiV1Ws.GET("/role/{namespace}").
+			To(apiHandler.handleGetRoleList).
+			Writes(role.RoleList{}))
 
 	return wsContainer, nil
+}
+
+func (apiHandler *APIHandler) handleGetCsrfToken(request *restful.Request, response *restful.Response) {
+	action := request.PathParameter("action")
+	token := xsrftoken.Generate(apiHandler.cManager.CSRFKey(), "none", action)
+	response.WriteHeaderAndEntity(http.StatusOK, api.CsrfToken{Token: token})
 }
 
 func (apiHandler *APIHandler) handleGetClusterRoleList(request *restful.Request, response *restful.Response) {
@@ -97,4 +132,85 @@ func (apiHandler *APIHandler) handleGetClusterRoleList(request *restful.Request,
 		return
 	}
 	response.WriteHeaderAndEntity(http.StatusOK, result)
+}
+
+func (apiHandler *APIHandler) handleGetClusterRoleDetail(request *restful.Request, response *restful.Response) {
+	k8sClient, err := apiHandler.cManager.Client(request)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+
+	name := request.PathParameter("name")
+	result, err := clusterrole.GetClusterRoleDetail(k8sClient, name)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+	response.WriteHeaderAndEntity(http.StatusOK, result)
+}
+
+func (apiHandler *APIHandler) handleGetClusterRoleBindingList(request *restful.Request, response *restful.Response) {
+	k8sClient, err := apiHandler.cManager.Client(request)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+
+	dataSelect := parser.ParseDataSelectPathParameter(request)
+	result, err := clusterrolebinding.GetClusterRoleBindingList(k8sClient, dataSelect)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+	response.WriteHeaderAndEntity(http.StatusOK, result)
+}
+
+func (apiHandler *APIHandler) handleGetClusterRoleBindingDetail(request *restful.Request, response *restful.Response) {
+	k8sClient, err := apiHandler.cManager.Client(request)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+
+	name := request.PathParameter("name")
+	result, err := clusterrolebinding.GetClusterRoleBindingDetail(k8sClient, name)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+	response.WriteHeaderAndEntity(http.StatusOK, result)
+}
+
+func (apiHandler *APIHandler) handleGetRoleList(request *restful.Request, response *restful.Response) {
+	k8sClient, err := apiHandler.cManager.Client(request)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+
+	namespace := parseNamespacePathParameter(request)
+	dataSelect := parser.ParseDataSelectPathParameter(request)
+	result, err := role.GetRoleList(k8sClient, namespace, dataSelect)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+	response.WriteHeaderAndEntity(http.StatusOK, result)
+}
+
+// parseNamespacePathParameter parses namespace selector for list pages in path parameter.
+// The namespace selector is a comma separated list of namespaces that are trimmed.
+// No namespaces means "view all user namespaces", i.e., everything except kube-system.
+func parseNamespacePathParameter(request *restful.Request) *common.NamespaceQuery {
+	namespace := request.PathParameter("namespace")
+	namespaces := strings.Split(namespace, ",")
+	var nonEmptyNamespaces []string
+	for _, n := range namespaces {
+		n = strings.Trim(n, " ")
+		if len(n) > 0 {
+			nonEmptyNamespaces = append(nonEmptyNamespaces, n)
+		}
+	}
+	return common.NewNamespaceQuery(nonEmptyNamespaces)
 }
