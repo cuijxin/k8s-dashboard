@@ -15,6 +15,8 @@ import (
 	"github.com/cuijxin/k8s-dashboard/src/backend/resource/clusterrole"
 	"github.com/cuijxin/k8s-dashboard/src/backend/resource/clusterrolebinding"
 	"github.com/cuijxin/k8s-dashboard/src/backend/resource/common"
+	"github.com/cuijxin/k8s-dashboard/src/backend/resource/dataselect"
+	"github.com/cuijxin/k8s-dashboard/src/backend/resource/pod"
 	"github.com/cuijxin/k8s-dashboard/src/backend/resource/role"
 	"github.com/cuijxin/k8s-dashboard/src/backend/settings"
 	settingsApi "github.com/cuijxin/k8s-dashboard/src/backend/settings/api"
@@ -108,6 +110,15 @@ func CreateHTTPAPIHandler(iManager integration.IntegrationManager,
 		apiV1Ws.GET("/role/{namespace}").
 			To(apiHandler.handleGetRoleList).
 			Writes(role.RoleList{}))
+	apiV1Ws.Route(
+		apiV1Ws.GET("/role/{namespace}/{name}").
+			To(apiHandler.handleGetRoleDetail).
+			Writes(role.RoleDetail{}))
+
+	apiV1Ws.Route(
+		apiV1Ws.GET("/pod").
+			To(apiHandler.handleGetPods).
+			Writes(pod.PodList{}))
 
 	return wsContainer, nil
 }
@@ -192,6 +203,41 @@ func (apiHandler *APIHandler) handleGetRoleList(request *restful.Request, respon
 	namespace := parseNamespacePathParameter(request)
 	dataSelect := parser.ParseDataSelectPathParameter(request)
 	result, err := role.GetRoleList(k8sClient, namespace, dataSelect)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+	response.WriteHeaderAndEntity(http.StatusOK, result)
+}
+
+func (apiHandler *APIHandler) handleGetRoleDetail(request *restful.Request, response *restful.Response) {
+	k8sClient, err := apiHandler.cManager.Client(request)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+
+	namespace := request.PathParameter("namespace")
+	name := request.PathParameter("name")
+	result, err := role.GetRoleDetail(k8sClient, namespace, name)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+	response.WriteHeaderAndEntity(http.StatusOK, result)
+}
+
+func (apiHandler *APIHandler) handleGetPods(request *restful.Request, response *restful.Response) {
+	k8sClient, err := apiHandler.cManager.Client(request)
+	if err != nil {
+		errors.HandleInternalError(response, err)
+		return
+	}
+
+	namespace := parseNamespacePathParameter(request)
+	dataSelect := parser.ParseDataSelectPathParameter(request)
+	dataSelect.MetricQuery = dataselect.StandardMetrics // download standard metrics - cpu, and memory - by default
+	result, err := pod.GetPodList(k8sClient, apiHandler.iManager.Metric().Client(), namespace, dataSelect)
 	if err != nil {
 		errors.HandleInternalError(response, err)
 		return
